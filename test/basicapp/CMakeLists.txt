@@ -3,10 +3,8 @@ cmake_minimum_required (VERSION 2.8)
 include(CTest)
 
 add_executable (basicapp main.cpp)
-find_package(PkgConfig)
-pkg_check_modules(BASICAPP_PKGS REQUIRED simple)
-include_directories(${BASICAPP_PKGS_INCLUDE_DIRS})
-target_link_libraries(basicapp ${BASICAPP_PKGS_LDFLAGS})
+find_path(SIMPLE_INCLUDE simple.h)
+include_directories(${SIMPLE_INCLUDE})
 install(TARGETS basicapp DESTINATION bin)
 
 add_executable (basciapptest main.cpp)

@@ -10,7 +10,7 @@ endforeach()
 set(_tmp_dir_count 0)
 
 macro(cget_mktemp_dir OUT)
-    string(TIMESTAMP cget_mktemp_dir_STAMP)
+    string(TIMESTAMP cget_mktemp_dir_STAMP %s)
     string(RANDOM cget_mktemp_dir_RAND)
     set(cget_mktemp_dir_PREFIX "${_cget_tmp_dir}/cget-${cget_mktemp_dir_STAMP}-${cget_mktemp_dir_RAND}")
     math(EXPR _tmp_dir_count "${_tmp_dir_count} + 1")
@@ -41,6 +41,13 @@ macro(cget_parse_requirement VAR PKG)
     cget_set_parse_flag(${VAR} DEFINE --define -D)
 endmacro()
 
+function(cget_exec)
+    execute_process(${ARGN} RESULT_VARIABLE RESULT)
+    if(NOT RESULT EQUAL 0)
+        message(FATAL_ERROR "Process failed: ${ARGN}")
+    endif()
+endfunction()
+
 function(cget_install_dir DIR)
     set(options)
     set(oneValueArgs PREFIX BUILD_DIR)
@@ -54,15 +61,15 @@ function(cget_install_dir DIR)
         file(MAKE_DIRECTORY ${BUILD_DIR})
     endif()
 
-    execute_process(COMMAND ${CMAKE_COMMAND} 
+    cget_exec(COMMAND ${CMAKE_COMMAND} 
         -DCMAKE_PREFIX_PATH=${PREFIX} 
         -DCMAKE_INSTALL_PREFIX=${PREFIX}
-        ${CMAKE_ARGS}
+        ${PARSE_CMAKE_ARGS}
         ${DIR}
         WORKING_DIRECTORY ${BUILD_DIR}
     )
-    execute_process(COMMAND ${CMAKE_COMMAND} --build ${BUILD_DIR})
-    execute_process(COMMAND ${CMAKE_COMMAND} --build ${BUILD_DIR} --target install)
+    cget_exec(COMMAND ${CMAKE_COMMAND} --build ${BUILD_DIR})
+    cget_exec(COMMAND ${CMAKE_COMMAND} --build ${BUILD_DIR} --target install)
 
     file(REMOVE_RECURSE ${BUILD_DIR})
 endfunction()
@@ -87,7 +94,6 @@ function(cget_parse_pkg URL PKG)
         set(${URL} ${PKG_SRC} PARENT_SCOPE)
     else()
         get_filename_component(PKG_SRC_FULL ${PKG_SRC} ABSOLUTE)
-        message("PKG_SRC_FULL: ${PKG_SRC_FULL}")
         if(EXISTS ${PKG_SRC_FULL})
             set(${URL} file://${PKG_SRC_FULL} PARENT_SCOPE)
         else()
