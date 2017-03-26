@@ -1,0 +1,3 @@
+# Initial comment
+simple,${TEST_DIR}/libsimple # A comment
+# Trailing comment
