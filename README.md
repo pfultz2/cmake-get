@@ -1,7 +1,7 @@
 cmake-get
 =========
 
-A cmake module to get dependencies. 
+A cmake module to get dependencies. This module can be use in config mode or in script mode.
 
 Reference
 =========
@@ -16,8 +16,16 @@ cmake_get
         [CMAKE_ARGS <args>...]
     )
 
+This will install a cmake package. It will run something equivalent to this in order to install the package:
+
+    mkdir build
+    cd build
+    cmake .. -DCMAKE_PREFIX_PATH=${PREFIX} -DCMAKE_INSTALL_PREFIX=${PREFIX} ${CMAKE_ARGS}
+    cmake --build .
+    cmake --build . --target install
+
 * `<pkg>`<br>
-This is package to be installed as described [here](http://cget.readthedocs.io/en/latest/src/package_src.html). It can be a URL or recipe.
+This is the package to be installed as described [here](http://cget.readthedocs.io/en/latest/src/package_src.html). It can be a URL or even a [recipe](http://cget.readthedocs.io/en/latest/src/recipe.html).
 * `PREFIX <prefix>`<br>
 This is prefix to where the package will be installed.
 * `HASH <hash>`<br>
