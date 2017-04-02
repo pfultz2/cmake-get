@@ -267,10 +267,15 @@ function(cmake_get_from FILENAME)
             if(PARSE_NO_RECIPE)
                 set(NO_RECIPE "NO_RECIPE")
             endif()
+            if(PARSE_REQ_CMAKE)
+                get_filename_component(FILE_DIR ${FILENAME} DIRECTORY)
+                get_filename_component(REQ_CMAKE ${PARSE_REQ_CMAKE} ABSOLUTE BASE_DIR ${FILE_DIR})
+            endif()
             cmake_get(${PARSE_REQ_PKG}
                 ${NO_RECIPE}
                 PREFIX ${PARSE_PREFIX} 
                 HASH ${PARSE_REQ_HASH}
+                CMAKE_FILE ${REQ_CMAKE}
                 CMAKE_ARGS ${PARSE_CMAKE_ARGS} ${PARSE_REQ_CMAKE_ARGS}
             )
         endif()
