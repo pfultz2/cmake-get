@@ -1,7 +1,7 @@
 cmake-get
 =========
 
-A cmake module to get dependencies. This module can be use in config mode or in script mode.
+A cmake module to get dependencies. This module can be used in config mode or in script mode.
 
 Reference
 =========

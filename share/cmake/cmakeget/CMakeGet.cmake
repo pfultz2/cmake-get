@@ -1,5 +1,66 @@
 
-include(CMakeParseArguments)
+
+if(CMAKE_VERSION VERSION_LESS "3.4")
+function(cget_parse_arguments prefix _optionNames _singleArgNames _multiArgNames)
+    # first set all result variables to empty/FALSE
+    foreach(arg_name ${_singleArgNames} ${_multiArgNames})
+        set(${prefix}_${arg_name})
+    endforeach()
+
+    foreach(option ${_optionNames})
+        set(${prefix}_${option} FALSE)
+    endforeach()
+
+    set(${prefix}_UNPARSED_ARGUMENTS)
+
+    set(insideValues FALSE)
+    set(currentArgName)
+
+    # now iterate over all arguments and fill the result variables
+    foreach(currentArg ${ARGN})
+        list(FIND _optionNames "${currentArg}" optionIndex)  # ... then this marks the end of the arguments belonging to this keyword
+        list(FIND _singleArgNames "${currentArg}" singleArgIndex)  # ... then this marks the end of the arguments belonging to this keyword
+        list(FIND _multiArgNames "${currentArg}" multiArgIndex)  # ... then this marks the end of the arguments belonging to this keyword
+
+        if(${optionIndex} EQUAL -1  AND  ${singleArgIndex} EQUAL -1  AND  ${multiArgIndex} EQUAL -1)
+            if(insideValues)
+                if("${insideValues}" STREQUAL "SINGLE")
+                    set(${prefix}_${currentArgName} ${currentArg})
+                    set(insideValues FALSE)
+                elseif("${insideValues}" STREQUAL "MULTI")
+                    list(APPEND ${prefix}_${currentArgName} ${currentArg})
+                endif()
+            else()
+                list(APPEND ${prefix}_UNPARSED_ARGUMENTS ${currentArg})
+            endif()
+        else()
+            if(NOT ${optionIndex} EQUAL -1)
+                set(${prefix}_${currentArg} TRUE)
+                set(insideValues FALSE)
+            elseif(NOT ${singleArgIndex} EQUAL -1)
+                set(currentArgName ${currentArg})
+                set(${prefix}_${currentArgName})
+                set(insideValues "SINGLE")
+            elseif(NOT ${multiArgIndex} EQUAL -1)
+                set(currentArgName ${currentArg})
+                set(insideValues "MULTI")
+            endif()
+        endif()
+
+    endforeach()
+
+    # propagate the result variables to the caller:
+    foreach(arg_name ${_singleArgNames} ${_multiArgNames} ${_optionNames})
+        set(${prefix}_${arg_name}  ${${prefix}_${arg_name}} PARENT_SCOPE)
+    endforeach()
+    set(${prefix}_UNPARSED_ARGUMENTS ${${prefix}_UNPARSED_ARGUMENTS} PARENT_SCOPE)
+
+endfunction()
+else()
+    macro(cget_parse_arguments prefix _optionNames _singleArgNames _multiArgNames)
+        cmake_parse_arguments(${prefix} "${_optionNames}" "${_singleArgNames}" "${_multiArgNames}" ${ARGN})
+    endmacro()
+endif()
 
 foreach(dir "$ENV{TMP}" "$ENV{TMPDIR}" "${CMAKE_CURRENT_LIST_DIR}/tmp")
     if(EXISTS "${dir}" AND NOT "${dir}" STREQUAL "")
@@ -42,7 +103,7 @@ macro(cget_parse_requirement VAR PKG)
         endif()
     endforeach()
 
-    cmake_parse_arguments(${VAR}_private "${${VAR}_private_options}" "${${VAR}_private_oneValueArgs}" "${${VAR}_private_multiValueArgs}" ${cget_parse_requirement_args})
+    cget_parse_arguments(${VAR}_private "${${VAR}_private_options}" "${${VAR}_private_oneValueArgs}" "${${VAR}_private_multiValueArgs}" ${cget_parse_requirement_args})
 
     cget_set_parse_flag(${VAR} BUILD --build -b)
     cget_set_parse_flag(${VAR} TEST --test -t)
@@ -69,14 +130,13 @@ function(cget_install_dir DIR)
     set(oneValueArgs PREFIX BUILD_DIR)
     set(multiValueArgs CMAKE_ARGS)
 
-    cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+    cget_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     set(PREFIX ${PARSE_PREFIX})
     set(BUILD_DIR ${PARSE_BUILD_DIR})
     if(NOT EXISTS ${BUILD_DIR})
         file(MAKE_DIRECTORY ${BUILD_DIR})
     endif()
-
     cget_exec(COMMAND ${CMAKE_COMMAND} 
         -DCMAKE_PREFIX_PATH=${PREFIX} 
         -DCMAKE_INSTALL_PREFIX=${PREFIX}
@@ -155,6 +215,7 @@ function(cget_fetch DIR DOWNLOAD_DIR URL)
         file(COPY ${LOCAL_DIR} DESTINATION ${DOWNLOAD_DIR}/)
     else()
         string(REPLACE "/" ";" PATH_LIST ${URL})
+        
         list(GET PATH_LIST -1 FILENAME)
         message("Downloading ${URL}")
         file(DOWNLOAD ${URL} ${DOWNLOAD_DIR}/${FILENAME} ${ARGN})
@@ -200,8 +261,8 @@ function(cmake_get PKG)
     set(options NO_RECIPE)
     set(oneValueArgs PREFIX HASH CMAKE_FILE)
     set(multiValueArgs CMAKE_ARGS)
-
-    cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+    
+    cget_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
     if(PARSE_NO_RECIPE)
         cget_parse_pkg(NAMES URL ${PKG})
     else()
@@ -246,7 +307,7 @@ function(cmake_get_from FILENAME)
     set(options NO_RECIPE)
     set(oneValueArgs PREFIX)
     set(multiValueArgs CMAKE_ARGS)
-    cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+    cget_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     file(STRINGS ${FILENAME} LINES)
     foreach(LINE ${LINES})
