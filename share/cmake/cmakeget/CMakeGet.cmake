@@ -330,7 +330,11 @@ function(cmake_get_from FILENAME)
             endif()
             if(PARSE_REQ_CMAKE)
                 get_filename_component(FILE_DIR ${FILENAME} DIRECTORY)
-                get_filename_component(REQ_CMAKE ${PARSE_REQ_CMAKE} ABSOLUTE BASE_DIR ${FILE_DIR})
+                if(NOT IS_ABSOLUTE PARSE_REQ_CMAKE)
+                    set(REQ_CMAKE "${FILE_DIR}/${PARSE_REQ_CMAKE}")
+                else()
+                    set(REQ_CMAKE "${PARSE_REQ_CMAKE}")
+                endif()
             endif()
             cmake_get(${PARSE_REQ_PKG}
                 ${NO_RECIPE}

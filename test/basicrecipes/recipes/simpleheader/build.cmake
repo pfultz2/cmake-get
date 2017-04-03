@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 2.8)
-
+message("********************** build.cmake **********************")
 set(INCLUDE_DIR include CACHE PATH "Include directory")
 
 install(DIRECTORY ${INCLUDE_DIR}/ DESTINATION include
