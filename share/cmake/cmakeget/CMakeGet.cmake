@@ -211,7 +211,7 @@ function(cget_parse_pkg NAME URL PKG)
 endfunction()
 
 function(cget_fetch DIR DOWNLOAD_DIR URL)
-    if(URL MATCHES "file://")
+    if("${URL}" MATCHES "file://")
         string(REPLACE "file://" "" LOCAL_DIR ${URL})
         file(COPY ${LOCAL_DIR} DESTINATION ${DOWNLOAD_DIR}/)
     else()
