@@ -37,7 +37,7 @@ Also, if recipes are used, its best not to list them in the [requirements.txt fi
     cmake_get_from(requirements.txt PREFIX ${CMAKE_CURRENT_BINARY_DIR}/deps)
     list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_BINARY_DIR}/deps)
 
-Of course, this still has the same weakness as `ExternelProject` as the toolchain is not transitive. 
+Of course, this still has the same weakness as `ExternalProject` as the toolchain is not transitive. 
 
 Script mode
 ===========
