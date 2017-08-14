@@ -125,6 +125,15 @@ function(cget_exec)
     endif()
 endfunction()
 
+function(cget_download)
+    file(DOWNLOAD ${ARGN} STATUS RESULT_LIST)
+    list(GET RESULT_LIST 0 RESULT)
+    list(GET RESULT_LIST 1 RESULT_MESSAGE)
+    if(NOT RESULT EQUAL 0)
+        message(FATAL_ERROR "Download failed: ${RESULT_MESSAGE}: ${ARGN}")
+    endif()
+endfunction()
+
 set(_cget_install_dir_count 0)
 set_property(GLOBAL PROPERTY _cget_install_dir_count 0)
 function(cget_install_dir DIR)
@@ -220,7 +229,7 @@ function(cget_fetch DIR DOWNLOAD_DIR URL)
         
         list(GET PATH_LIST -1 FILENAME)
         message("Downloading ${URL}")
-        file(DOWNLOAD ${URL} ${DOWNLOAD_DIR}/${FILENAME} ${ARGN})
+        cget_download(${URL} ${DOWNLOAD_DIR}/${FILENAME} ${ARGN})
         execute_process(COMMAND ${CMAKE_COMMAND} -E tar xzf ${DOWNLOAD_DIR}/${FILENAME}
             WORKING_DIRECTORY ${DOWNLOAD_DIR}
         )
@@ -247,7 +256,7 @@ function(cget_find_cmake FILE DIR)
         file(RENAME ${DIR}/${BASENAME} ${DIR}/CMakeLists.txt)
     else()
         string(REPLACE ".cmake" "" REMOTE_CMAKE ${FILE})
-        file(DOWNLOAD https://raw.githubusercontent.com/pfultz2/cget/master/cget/cmake/${REMOTE_CMAKE}.cmake ${DIR}/CMakeLists.txt)
+        cget_download(https://raw.githubusercontent.com/pfultz2/cget/master/cget/cmake/${REMOTE_CMAKE}.cmake ${DIR}/CMakeLists.txt)
     endif()
 endfunction()
 
