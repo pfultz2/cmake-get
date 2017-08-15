@@ -1,6 +1,8 @@
 
 set(BUILD_DEPS On CACHE BOOL "Build dependencies")
 
+include(ProcessorCount)
+
 if(CMAKE_VERSION VERSION_LESS "3.4")
 function(cget_parse_arguments prefix _optionNames _singleArgNames _multiArgNames)
     # first set all result variables to empty/FALSE
@@ -155,8 +157,13 @@ function(cget_install_dir DIR)
         ${DIR}
         WORKING_DIRECTORY ${BUILD_DIR}
     )
-    cget_exec(COMMAND ${CMAKE_COMMAND} --build ${BUILD_DIR})
-    cget_exec(COMMAND ${CMAKE_COMMAND} --build ${BUILD_DIR} --target install)
+    set(BUILD_ARGS)
+    if(EXISTS ${BUILD_DIR}/Makefile)
+        ProcessorCount(N)
+        set(BUILD_ARGS -- -j ${N})
+    endif()
+    cget_exec(COMMAND ${CMAKE_COMMAND} --build ${BUILD_DIR} ${BUILD_ARGS})
+    cget_exec(COMMAND ${CMAKE_COMMAND} --build ${BUILD_DIR} --target install ${BUILD_ARGS})
 
     get_property(_tmp_count GLOBAL PROPERTY _cget_install_dir_count)
     math(EXPR _tmp_count "${_tmp_count} + 1")
