@@ -215,7 +215,7 @@ function(cget_find_recipe RECIPE_DIR SRC)
 endfunction()
 
 function(cget_validate_gh_src NAME)
-    if(NAME MATCHES "[^A-Za-z0-9_/@-]")
+    if(NAME MATCHES "[^A-Za-z0-9_./@-]")
         message(FATAL_ERROR "Not a valid name: ${NAME}")
     endif()
 endfunction()
