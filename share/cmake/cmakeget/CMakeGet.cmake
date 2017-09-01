@@ -109,6 +109,10 @@ macro(cget_parse_requirement VAR PKG)
 
     cget_parse_arguments(${VAR}_private "${${VAR}_private_options}" "${${VAR}_private_oneValueArgs}" "${${VAR}_private_multiValueArgs}" ${cget_parse_requirement_args})
 
+    if(${VAR}_private_UNPARSED_ARGUMENTS)
+        message(WARNING "Unknown keywords given in requirements file: \"${${VAR}_private_UNPARSED_ARGUMENTS}\"")
+    endif()
+
     cget_set_parse_flag(${VAR} BUILD --build -b)
     cget_set_parse_flag(${VAR} TEST --test -t)
     cget_set_parse_flag(${VAR} CMAKE --cmake -X)
@@ -144,6 +148,10 @@ function(cget_install_dir DIR)
     set(multiValueArgs CMAKE_ARGS)
 
     cget_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    if(PARSE_UNPARSED_ARGUMENTS)
+        message(FATAL_ERROR "Unknown keywords given to cget_install_dir(): \"${PARSE_UNPARSED_ARGUMENTS}\"")
+    endif()
 
     set(PREFIX ${PARSE_PREFIX})
     set(BUILD_DIR ${PARSE_BUILD_DIR})
@@ -206,6 +214,12 @@ function(cget_find_recipe RECIPE_DIR SRC)
     endforeach()
 endfunction()
 
+function(cget_validate_gh_src NAME)
+    if(NAME MATCHES "[^A-Za-z0-9_/@-]")
+        message(FATAL_ERROR "Not a valid name: ${NAME}")
+    endif()
+endfunction()
+
 function(cget_parse_pkg NAME URL PKG)
     string(REPLACE "," ";" PKG_NAMES ${PKG})
     list(GET PKG_NAMES -1 PKG_SRC)
@@ -224,8 +238,11 @@ function(cget_parse_pkg NAME URL PKG)
                 set(${URL} recipe://${RECIPE_DIR} PARENT_SCOPE)
                 set(${NAME} ${PKG_SRC} ${PKG_NAME} PARENT_SCOPE)
             else()
+                cget_validate_gh_src(${PKG_SRC})
                 # Parse github url
                 cget_parse_src_name(GH_NAME GH_BRANCH ${PKG_SRC} HEAD)
+                cget_validate_gh_src(${GH_NAME})
+                cget_validate_gh_src(${GH_BRANCH})
                 set(${NAME} ${GH_NAME} ${PKG_NAME} PARENT_SCOPE)
                 if(GH_NAME MATCHES "/")
                     set(${URL} "https://github.com/${GH_NAME}/archive/${GH_BRANCH}.tar.gz" PARENT_SCOPE)
@@ -297,6 +314,11 @@ if(BUILD_DEPS)
     set(multiValueArgs CMAKE_ARGS)
     
     cget_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    if(PARSE_UNPARSED_ARGUMENTS)
+        message(FATAL_ERROR "Unknown keywords given to cmake_get(): \"${PARSE_UNPARSED_ARGUMENTS}\"")
+    endif()
+
     if(PARSE_NO_RECIPE)
         cget_parse_pkg(NAMES URL ${PKG})
     else()
@@ -344,6 +366,14 @@ if(BUILD_DEPS)
     set(oneValueArgs PREFIX)
     set(multiValueArgs CMAKE_ARGS)
     cget_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    if(NOT EXISTS ${FILENAME})
+        message(FATAL_ERROR "File ${FILENAME} does not exists")
+    endif()
+
+    if(PARSE_UNPARSED_ARGUMENTS)
+        message(FATAL_ERROR "Unknown keywords given to cmake_get_from(): \"${PARSE_UNPARSED_ARGUMENTS}\"")
+    endif()
 
     file(STRINGS ${FILENAME} LINES)
     foreach(LINE ${LINES})
