@@ -1,8 +1,25 @@
 #!/usr/bin/env cmake -P
 
+include(CMakeParseArguments)
+
+set(ARGS)
+foreach(i RANGE 4 ${CMAKE_ARGC})
+    list(APPEND ARGS ${CMAKE_ARGV${i}})
+endforeach()
+
+set(options help)
+set(oneValueArgs -r)
+set(multiValueArgs)
+
+cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGS})
+
+set(FILENAME master.tar.gz)
+if(PARSE_-r)
+    set(FILENAME ${PARSE_-r}.tar.gz)
+endif()
+
 set(_PREFIX ${CMAKE_ARGV3})
 get_filename_component(PREFIX ${_PREFIX} ABSOLUTE)
-set(FILENAME master.tar.gz)
 set(URL "https://github.com/pfultz2/cmake-get/archive/${FILENAME}")
 
 string(TIMESTAMP _tmp_dir_STAMP "%H-%M-%S")
