@@ -8,6 +8,9 @@ file(MAKE_DIRECTORY ${TMP_DIR})
 
 include(${CMAKE_CURRENT_LIST_DIR}/../share/cmake/cmakeget/CMakeGet.cmake)
 
+set(CMAKE_GET_PREFIX ${CMAKE_CURRENT_LIST_DIR}/../)
+set(CMAKE_GET_MODULE ${CMAKE_CURRENT_LIST_DIR}/../share/cmake/cmakeget/)
+
 macro(test_expect_eq X Y)
     if(NOT ${X} EQUAL ${Y})
         message(FATAL_ERROR "EXPECT FAILURE: ${X} != ${Y}")
