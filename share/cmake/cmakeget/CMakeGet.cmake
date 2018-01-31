@@ -127,7 +127,9 @@ endmacro()
 function(cget_exec)
     execute_process(${ARGN} RESULT_VARIABLE RESULT)
     if(NOT RESULT EQUAL 0)
-        message(FATAL_ERROR "Process failed: ${ARGN}")
+        string(REPLACE ";" " " CMD "${ARGN}")
+        string(REPLACE "COMMAND " "" CMD "${CMD}")
+        message(FATAL_ERROR "Process failed: ${CMD}")
     endif()
 endfunction()
 
@@ -151,6 +153,10 @@ function(cget_install_dir DIR)
 
     if(PARSE_UNPARSED_ARGUMENTS)
         message(FATAL_ERROR "Unknown keywords given to cget_install_dir(): \"${PARSE_UNPARSED_ARGUMENTS}\"")
+    endif()
+
+    if(NOT EXISTS ${DIR}/CMakeLists.txt)
+        message(FATAL_ERROR "cget_install_dir(): ${DIR} is not a cmake package")
     endif()
 
     set(PREFIX ${PARSE_PREFIX})
@@ -254,28 +260,42 @@ function(cget_parse_pkg NAME URL PKG)
     endif()
 endfunction()
 
+function(cget_unpack FILENAME DIR)
+    file(MAKE_DIRECTORY ${DIR})
+    cget_exec(COMMAND ${CMAKE_COMMAND} -E tar xzf ${FILENAME}
+        WORKING_DIRECTORY ${DIR}
+    )
+endfunction()
+
 function(cget_fetch DIR DOWNLOAD_DIR URL)
     if("${URL}" MATCHES "file://")
-        string(REPLACE "file://" "" LOCAL_DIR ${URL})
-        file(COPY ${LOCAL_DIR} DESTINATION ${DOWNLOAD_DIR}/)
+        string(REPLACE "file://" "" LOCAL_PATH ${URL})
+        if(IS_DIRECTORY ${LOCAL_PATH})
+            file(COPY ${LOCAL_PATH} DESTINATION ${DOWNLOAD_DIR}/)
+        else()
+            cget_unpack(${LOCAL_PATH} ${DOWNLOAD_DIR})
+        endif()
     else()
         string(REPLACE "/" ";" PATH_LIST ${URL})
         
         list(GET PATH_LIST -1 FILENAME)
         message("Downloading ${URL}")
         cget_download(${URL} ${DOWNLOAD_DIR}/${FILENAME} ${ARGN})
-        execute_process(COMMAND ${CMAKE_COMMAND} -E tar xzf ${DOWNLOAD_DIR}/${FILENAME}
-            WORKING_DIRECTORY ${DOWNLOAD_DIR}
-        )
+        cget_unpack("${DOWNLOAD_DIR}/${FILENAME}" "${DOWNLOAD_DIR}")
         file(REMOVE ${DOWNLOAD_DIR}/${FILENAME})
     endif()
+    set(${DIR} ${DOWNLOAD_DIR} PARENT_SCOPE)
     file(GLOB FILES LIST_DIRECTORIES true RELATIVE ${DOWNLOAD_DIR} ${DOWNLOAD_DIR}/*)
     list(LENGTH FILES NFILES)
-    if(NFILES GREATER 0)
-        list(GET FILES 0 _DIR)
-        set(${DIR} ${DOWNLOAD_DIR}/${_DIR} PARENT_SCOPE)
-    else()
+    if(NFILES EQUAL 0)
+        # No files found, so this is an error
         message(FATAL_ERROR "Failed to fetch: ${URL}")
+    elseif(NFILES EQUAL 1)
+        list(GET FILES 0 _DIR)
+        if(IS_DIRECTORY ${DOWNLOAD_DIR}/${_DIR})
+            # If there is just one directory, then adjust the path
+            set(${DIR} ${DOWNLOAD_DIR}/${_DIR} PARENT_SCOPE)
+        endif()
     endif()
 endfunction()
 
