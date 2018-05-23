@@ -86,17 +86,19 @@ macro(cget_mktemp_dir OUT)
 endmacro()
 
 macro(cget_set_parse_flag VAR OPT)
+    unset(${VAR}_${OPT})
     foreach(FLAG ${ARGN})
         if(${VAR}_private_${FLAG})
             set(${VAR}_${OPT} ${${VAR}_private_${FLAG}})
         endif()
+        unset(${VAR}_private_${FLAG})
     endforeach()
 endmacro()
 
-macro(cget_parse_requirement VAR PKG)
-    set(${VAR}_PKG ${PKG})
+macro(cget_parse_requirement VAR)
+    unset(${VAR}_PKG)
     set(${VAR}_private_options --build -b --test -t)
-    set(${VAR}_private_oneValueArgs -H --hash -X --cmake)
+    set(${VAR}_private_oneValueArgs -H --hash -X --cmake --file -f)
     set(${VAR}_private_multiValueArgs -D --define)
 
     set(cget_parse_requirement_args)
@@ -112,7 +114,12 @@ macro(cget_parse_requirement VAR PKG)
     cget_parse_arguments(${VAR}_private "${${VAR}_private_options}" "${${VAR}_private_oneValueArgs}" "${${VAR}_private_multiValueArgs}" ${cget_parse_requirement_args})
 
     if(${VAR}_private_UNPARSED_ARGUMENTS)
-        message(WARNING "Unknown keywords given in requirements file: \"${${VAR}_private_UNPARSED_ARGUMENTS}\"")
+        list(GET ${VAR}_private_UNPARSED_ARGUMENTS 0 ${VAR}_PKG)
+        list(LENGTH ${VAR}_private_UNPARSED_ARGUMENTS ${VAR}_private_UNPARSED_ARGUMENTS_SIZE)
+        if(${VAR}_private_UNPARSED_ARGUMENTS_SIZE GREATER 1)
+            list(REMOVE_AT ${VAR}_private_UNPARSED_ARGUMENTS 0)
+            message(WARNING "Unknown keywords given in requirements file: \"${${VAR}_private_UNPARSED_ARGUMENTS}\"")
+        endif()
     endif()
 
     cget_set_parse_flag(${VAR} BUILD --build -b)
@@ -120,6 +127,7 @@ macro(cget_parse_requirement VAR PKG)
     cget_set_parse_flag(${VAR} CMAKE --cmake -X)
     cget_set_parse_flag(${VAR} HASH --hash -H)
     cget_set_parse_flag(${VAR} DEFINE --define -D)
+    cget_set_parse_flag(${VAR} FILE --file -f)
     set(${VAR}_CMAKE_ARGS)
     foreach(DEFINE ${${VAR}_DEFINE})
         list(APPEND ${VAR}_CMAKE_ARGS "-D${DEFINE}")
@@ -329,6 +337,15 @@ function(cget_check_pkg_install FOUND)
     endforeach()
 endfunction()
 
+function(cget_get_absolute_path VAR PATH FILENAME)
+    get_filename_component(FILE_DIR ${FILENAME} DIRECTORY)
+    if(NOT IS_ABSOLUTE "${PATH}")
+        set(${VAR} "${FILE_DIR}/${PATH}" PARENT_SCOPE)
+    else()
+        set(${VAR} "${PATH}" PARENT_SCOPE)
+    endif()
+endfunction()
+
 function(cmake_get PKG)
 if(BUILD_DEPS)
     set(options NO_RECIPE)
@@ -417,20 +434,24 @@ if(BUILD_DEPS)
                 set(NO_RECIPE "NO_RECIPE")
             endif()
             if(PARSE_REQ_CMAKE)
-                get_filename_component(FILE_DIR ${FILENAME} DIRECTORY)
-                if(NOT IS_ABSOLUTE PARSE_REQ_CMAKE)
-                    set(REQ_CMAKE "${FILE_DIR}/${PARSE_REQ_CMAKE}")
-                else()
-                    set(REQ_CMAKE "${PARSE_REQ_CMAKE}")
-                endif()
+                cget_get_absolute_path(REQ_CMAKE ${PARSE_REQ_CMAKE} ${FILENAME})
             endif()
-            cmake_get(${PARSE_REQ_PKG}
-                ${NO_RECIPE}
-                PREFIX ${PARSE_PREFIX} 
-                HASH ${PARSE_REQ_HASH}
-                CMAKE_FILE ${REQ_CMAKE}
-                CMAKE_ARGS ${PARSE_CMAKE_ARGS} ${PARSE_REQ_CMAKE_ARGS}
-            )
+            if(PARSE_REQ_FILE)
+                cget_get_absolute_path(REQ_FILE ${PARSE_REQ_FILE} ${FILENAME})
+                cmake_get_from(${REQ_FILE}
+                    ${NO_RECIPE}
+                    PREFIX ${PARSE_PREFIX} 
+                    CMAKE_ARGS ${PARSE_CMAKE_ARGS} ${PARSE_REQ_CMAKE_ARGS}
+                )
+            else()
+                cmake_get(${PARSE_REQ_PKG}
+                    ${NO_RECIPE}
+                    PREFIX ${PARSE_PREFIX} 
+                    HASH ${PARSE_REQ_HASH}
+                    CMAKE_FILE ${REQ_CMAKE}
+                    CMAKE_ARGS ${PARSE_CMAKE_ARGS} ${PARSE_REQ_CMAKE_ARGS}
+                )
+            endif()
         endif()
     endforeach()
 endif()
