@@ -444,7 +444,11 @@ if(BUILD_DEPS)
                     CMAKE_ARGS ${PARSE_CMAKE_ARGS} ${PARSE_REQ_CMAKE_ARGS}
                 )
             else()
-                cmake_get(${PARSE_REQ_PKG}
+                cget_get_absolute_path(REQ_PKG ${PARSE_REQ_PKG} ${FILENAME})
+                if(NOT EXISTS ${REQ_PKG})
+                    set(REQ_PKG ${PARSE_REQ_PKG})
+                endif()
+                cmake_get(${REQ_PKG}
                     ${NO_RECIPE}
                     PREFIX ${PARSE_PREFIX} 
                     HASH ${PARSE_REQ_HASH}
